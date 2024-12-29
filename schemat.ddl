@@ -187,6 +187,19 @@ BEGIN
     RETURN vKoszt;
 END KosztZamowienia;
 
+CREATE OR REPLACE FUNCTION SredniRankingDilera (vNazwaDilera IN VARCHAR2)
+RETURN FLOAT IS
+    vSrednia FLOAT;
+BEGIN
+    SELECT AVG(ocena) INTO vSrednia
+    FROM Opinie
+    WHERE nazwa_dilera = vNazwaDilera;
+    
+    RETURN NVL(vSrednia, 0);
+END SredniRankingDilera;
+
+
+
 
 
 
