@@ -151,7 +151,7 @@ BEGIN
     VALUES (pesel_client, imie_client, nazwisko_client, telefon_client);
 END
 
--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 
 
 
