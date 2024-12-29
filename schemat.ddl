@@ -113,7 +113,7 @@ CREATE TABLE Felgi (
 
 CREATE SEQUENCE id_klienci START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE id_zamowienia START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE nr_zamowienia START WITH 1 INCREMENT BY 1;
 
 CREATE SEQUENCE id_auta START WITH 1 INCREMENT BY 1;
 
@@ -150,6 +150,42 @@ BEGIN
     INSERT INTO Klienci (pesel, imie, nazwisko, telefon)
     VALUES (vPesel, vImie, vNazwisko, vTelefon);
 END DodajKlienta;
+
+---
+CREATE OR REPLACE PROCEDURE DodajZamowienie (
+    vDataZamowienia IN DATE,
+    vDataOdbioru IN DATE,
+    vDiler IN VARCHAR2,
+    vIdKlienta IN CHAR
+) IS
+BEGIN
+    INSERT INTO Zamowienia (nr_zamowienia, data_zamowienia, data_odbioru, diler, id_klienta)
+    VALUES (id_zamowienia.NEXTVAL, vDataZamowienia, vDataOdbioru, vDiler, vIdKlienta);
+END DodajZamowienie;
+
+---
+CREATE OR REPLACE PROCEDURE DodajOpinie (
+    vOcena IN INT,
+    vKomentarz IN VARCHAR2,
+    vNazwaDilera IN VARCHAR2,
+    vIdAutora IN CHAR
+) IS
+BEGIN
+    INSERT INTO Opinie (id_opinii, ocena, komentarz, nazwa_dilera, id_autora)
+    VALUES (id_opinie.NEXTVAL, vOcena, vKomentarz, vNazwaDilera, vIdAutora);
+END DodajOpinie;
+
+-------
+CREATE OR REPLACE FUNCTION KosztZamowienia (vNrZamowienia IN INT)
+RETURN DECIMAL IS
+    vKoszt DECIMAL(10, 2);
+BEGIN
+    SELECT SUM(cena) INTO vKoszt
+    FROM Auta
+    WHERE nr_zamowienia = vNrZamowienia;
+    
+    RETURN vKoszt;
+END KosztZamowienia;
 
 
 
