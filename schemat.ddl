@@ -140,16 +140,18 @@ CREATE SEQUENCE id_felgi START WITH 1 INCREMENT BY 1;
 -- Funkcje, procedury
 ------------------------------------------------------------------
 
-CREATE OR REPLACE PROCEDURE AddClient(
-    IN pesel_client CHAR(11),
-    IN imie_client VARCHAR(50),
-    IN nazwisko_client VARCHAR(50),
-    IN telefon_client VARCHAR(15)
-)
+CREATE OR REPLACE PROCEDURE DodajKlienta (
+    vPesel IN CHAR,
+    vImie IN VARCHAR2,
+    vNazwisko IN VARCHAR2,
+    vTelefon IN VARCHAR2
+) IS
 BEGIN
     INSERT INTO Klienci (pesel, imie, nazwisko, telefon)
-    VALUES (pesel_client, imie_client, nazwisko_client, telefon_client);
-END
+    VALUES (vPesel, vImie, vNazwisko, vTelefon);
+END DodajKlienta;
+
+
 
 
 
