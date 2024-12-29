@@ -104,3 +104,35 @@ CREATE TABLE Felgi (
     kolor VARCHAR(30) NOT NULL,
     FOREIGN KEY (nazwa_komponentu) REFERENCES Komponenty(nazwa_komponentu)
 );
+
+
+
+--------------------------------------------------------------
+-- Sekwencje
+--------------------------------------------------------------
+
+CREATE SEQUENCE id_klienci START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_zamowienia START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_auta START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_modele START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_nadwozia START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_rodziny_modeli START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_opinie START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_dilery START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_komponenty START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_sterio_systemy START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_silniki START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE id_felgi START WITH 1 INCREMENT BY 1;
+
+--------------------------------------------------------------
