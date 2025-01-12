@@ -1,3 +1,7 @@
+----------------------------------------------------
+- Tworzenie tabel
+----------------------------------------------------
+
 CREATE TABLE Klienci (
     pesel CHAR(11) PRIMARY KEY,
     imie VARCHAR(50) NOT NULL,
