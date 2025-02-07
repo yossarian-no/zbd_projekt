@@ -126,68 +126,226 @@ CREATE SEQUENCE id_silniki START WITH 1 INCREMENT BY 1;
 
 CREATE SEQUENCE id_felgi START WITH 1 INCREMENT BY 1;
 
+CREATE SEQUENCE  "SEQ_ID_AUTA"  MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 7 NOCACHE  NOORDER  NOCYCLE  NOKEEP  NOSCALE  GLOBAL ;
 
+CREATE SEQUENCE  "SEQ_ID_OPINII"  MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 12 NOCACHE  NOORDER  NOCYCLE  NOKEEP  NOSCALE  GLOBAL ;
+
+CREATE SEQUENCE  "SEQ_NR_ZAMOWIENIA"  MINVALUE 1 MAXVALUE 9999999999999999999999999999 INCREMENT BY 1 START WITH 7 NOCACHE  NOORDER  NOCYCLE  NOKEEP  NOSCALE  GLOBAL ;
 ------------------------------------------------------------------
 -- Funkcje, procedury
 ------------------------------------------------------------------
 
-CREATE OR REPLACE PROCEDURE DodajKlienta (
-    vPesel IN CHAR,
-    vImie IN VARCHAR2,
-    vNazwisko IN VARCHAR2,
-    vTelefon IN VARCHAR2
-) IS
+create or replace FUNCTION get_avg_rating(p_nazwa_dilera VARCHAR2)
+RETURN NUMBER IS
+    v_avg_rating NUMBER(5,3);
 BEGIN
-    INSERT INTO Klienci (pesel, imie, nazwisko, telefon)
-    VALUES (vPesel, vImie, vNazwisko, vTelefon);
-END DodajKlienta;
+    SELECT NVL(AVG(ocena), 0)
+    INTO v_avg_rating
+    FROM Opinie
+    WHERE nazwa_dilera = p_nazwa_dilera;
 
-
-CREATE OR REPLACE PROCEDURE DodajZamowienie (
-    vDataZamowienia IN DATE,
-    vDataOdbioru IN DATE,
-    vDiler IN VARCHAR2,
-    vIdKlienta IN CHAR
-) IS
-BEGIN
-    INSERT INTO Zamowienia (nr_zamowienia, data_zamowienia, data_odbioru, diler, id_klienta)
-    VALUES (id_zamowienia.NEXTVAL, vDataZamowienia, vDataOdbioru, vDiler, vIdKlienta);
-END DodajZamowienie;
-
-
-CREATE OR REPLACE PROCEDURE DodajOpinie (
-    vOcena IN INT,
-    vKomentarz IN VARCHAR2,
-    vNazwaDilera IN VARCHAR2,
-    vIdAutora IN CHAR
-) IS
-BEGIN
-    INSERT INTO Opinie (id_opinii, ocena, komentarz, nazwa_dilera, id_autora)
-    VALUES (id_opinie.NEXTVAL, vOcena, vKomentarz, vNazwaDilera, vIdAutora);
-END DodajOpinie;
+    RETURN v_avg_rating;
+END get_avg_rating;
+/
 
 -------------------------------
-CREATE OR REPLACE FUNCTION KosztZamowienia (vNrZamowienia IN INT)
-RETURN DECIMAL IS
-    vKoszt DECIMAL(10, 2);
+create or replace PROCEDURE update_avg_rating(p_nazwa_dilera VARCHAR2) IS
 BEGIN
-    SELECT SUM(cena) INTO vKoszt
-    FROM Auta
-    WHERE nr_zamowienia = vNrZamowienia;
-    
-    RETURN vKoszt;
-END KosztZamowienia;
-
-CREATE OR REPLACE FUNCTION SredniRankingDilera (vNazwaDilera IN VARCHAR2)
-RETURN FLOAT IS
-    vSrednia FLOAT;
-BEGIN
-    SELECT AVG(ocena) INTO vSrednia
-    FROM Opinie
-    WHERE nazwa_dilera = vNazwaDilera;
-    
-    RETURN NVL(vSrednia, 0);
-END SredniRankingDilera;
-
+    UPDATE Dilery
+    SET sr_ocena = get_avg_rating(p_nazwa_dilera)
+    WHERE nazwa_dilera = p_nazwa_dilera;
+END update_avg_rating;
+/
 
 --=-=-=-=-=-=--
+
+create or replace TRIGGER trg_id_auta
+BEFORE INSERT ON auta
+FOR EACH ROW
+BEGIN
+    
+    SELECT seq_id_auta.NEXTVAL
+    INTO :new.id_auta
+    FROM dual;
+END;
+/
+
+create or replace TRIGGER trg_nr_zamowienia
+BEFORE INSERT ON Zamowienia
+FOR EACH ROW
+BEGIN
+    SELECT seq_nr_zamowienia.NEXTVAL
+    INTO :new.NR_ZAMOWIENIA
+    FROM dual;
+END;
+/
+
+create or replace TRIGGER trg_opinie_before_insert
+BEFORE INSERT ON OPINIE
+FOR EACH ROW
+BEGIN
+    
+    SELECT seq_id_opinii.NEXTVAL
+    INTO :new.ID_OPINII
+    FROM dual;
+END;
+/
+
+create or replace TRIGGER trg_update_avg_rating
+AFTER INSERT OR UPDATE OR DELETE ON Opinie
+DECLARE
+    CURSOR cur_dilery IS
+        SELECT DISTINCT nazwa_dilera FROM Opinie;
+BEGIN
+    FOR rec IN cur_dilery LOOP
+        update_avg_rating(rec.nazwa_dilera);
+    END LOOP;
+END trg_update_avg_rating;
+/
+
+create or replace TRIGGER TR_BLOCK_CLIENT_DELETE
+BEFORE DELETE ON KLIENCI
+FOR EACH ROW
+DECLARE
+    v_count_zamowienia NUMBER := 0;
+    v_count_opinie NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count_zamowienia
+    FROM ZAMOWIENIA
+    WHERE id_klienta = :OLD.PESEL;
+
+    SELECT COUNT(*) INTO v_count_opinie
+    FROM OPINIE
+    WHERE id_autora = :OLD.PESEL;
+
+    IF v_count_zamowienia > 0 AND v_count_opinie > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Nie można usunąć klienta: posiada opinie i zamówienia w systemie!');
+    ELSIF v_count_zamowienia > 0 THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Nie można usunąć klienta: posiada zamówienia w systemie!');
+    ELSIF v_count_opinie > 0 THEN
+        RAISE_APPLICATION_ERROR(-20003, 'Nie można usunąć klienta: posiada opinie w systemie!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_DILER_DELETE
+BEFORE DELETE ON DILERY
+FOR EACH ROW
+DECLARE
+    v_count_zamowienia NUMBER := 0;
+    v_count_opinie NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count_zamowienia
+    FROM ZAMOWIENIA
+    WHERE diler = :OLD.nazwa_dilera;
+
+    SELECT COUNT(*) INTO v_count_opinie
+    FROM OPINIE
+    WHERE nazwa_dilera = :OLD.nazwa_dilera;
+
+    IF v_count_zamowienia > 0 AND v_count_opinie > 0 THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Nie można usunąć dilera: posiada opinie i zamówienia w systemie!');
+    ELSIF v_count_zamowienia > 0 THEN
+        RAISE_APPLICATION_ERROR(-20005, 'Nie można usunąć dilera: posiada zamówienia w systemie!');
+    ELSIF v_count_opinie > 0 THEN
+        RAISE_APPLICATION_ERROR(-20006, 'Nie można usunąć dilera: posiada opinie w systemie!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_KOMPONENT_DELETE
+BEFORE DELETE ON KOMPONENTY
+FOR EACH ROW
+DECLARE
+    v_count_sterio NUMBER := 0;
+    v_count_silniki NUMBER := 0;
+    v_count_felgi NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count_sterio
+    FROM STERIO_SYSTEMY
+    WHERE nazwa_komponentu = :OLD.nazwa_komponentu;
+
+    SELECT COUNT(*) INTO v_count_silniki
+    FROM SILNIKI
+    WHERE nazwa_komponentu = :OLD.nazwa_komponentu;
+
+    SELECT COUNT(*) INTO v_count_felgi
+    FROM FELGI
+    WHERE nazwa_komponentu = :OLD.nazwa_komponentu;
+
+    IF v_count_sterio > 0 THEN
+        RAISE_APPLICATION_ERROR(-20007, 'Nie można usunąć komponentu: jest używany w tabeli "Sterio_systemy"!');
+    ELSIF v_count_silniki > 0 THEN
+        RAISE_APPLICATION_ERROR(-20008, 'Nie można usunąć komponentu: jest używany w tabeli "Silniki"!');
+    ELSIF v_count_felgi > 0 THEN
+        RAISE_APPLICATION_ERROR(-20009, 'Nie można usunąć komponentu: jest używany w tabeli "Felgi"!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_MODELE_DELETE
+BEFORE DELETE ON MODELE
+FOR EACH ROW
+DECLARE
+    v_count NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM AUTA
+    WHERE model = :OLD.nazwa_modeli;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20010, 'Nie można usunąć modelu: jest używany w tabeli "Auta"!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_NADWOZIE_DELETE
+BEFORE DELETE ON NADWOZIA
+FOR EACH ROW
+DECLARE
+    v_count NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM MODELE
+    WHERE nadwozie = :OLD.nazwa_nadwozia;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20012, 'Nie można usunąć nadwozia: jest używane w tabeli "Modele"!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_SERIA_DELETE
+BEFORE DELETE ON RODZINY_MODELI
+FOR EACH ROW
+DECLARE
+    v_count NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM MODELE
+    WHERE seria = :OLD.nazwa_serii;
+
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20011, 'Nie można usunąć serii: jest używana w tabeli "Modele"!');
+    END IF;
+END;
+/
+
+create or replace TRIGGER TR_BLOCK_ZAMOWIENIE_DELETE
+BEFORE DELETE ON ZAMOWIENIA
+FOR EACH ROW
+DECLARE
+    v_count NUMBER := 0;
+BEGIN
+    
+    SELECT COUNT(*) INTO v_count
+    FROM AUTA
+    WHERE nr_zamowienia = :OLD.nr_zamowienia;
+
+    
+    IF v_count > 0 THEN
+        RAISE_APPLICATION_ERROR(-20013, 'Nie można usunąć zamówienia: istnieje Auto do zamowiena!');
+    END IF;
+END;
+/
+
