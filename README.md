@@ -110,9 +110,3 @@ Projekt pozwolił rozwinąć praktyczne umiejętności w zakresie:
 - pracy z SQL i PL/SQL,
 - walidacji danych i obsługi błędów,
 - projektowania interfejsów wspierających zarządzanie danymi.
-
-
-## Autor
-
-Projekt został zrealizowany w ramach pracy zespołowej na uczelni.  
-Mój wkład koncentrował się przede wszystkim na projektowaniu bazy danych, modelowaniu relacji, rozwoju aplikacji w Oracle APEX, walidacji danych oraz poprawie użyteczności interfejsu.
